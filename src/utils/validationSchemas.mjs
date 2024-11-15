@@ -19,5 +19,8 @@ export const createUserValidationSchema = {
             errorMessage: "displayName cannot be emmpty",
         },
         isString: true,
-    }
+    },
+    password: {
+        notEmpty: true,
+    },
 };

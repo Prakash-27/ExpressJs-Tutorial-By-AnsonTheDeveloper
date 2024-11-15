@@ -3,6 +3,8 @@ import { query, validationResult, checkSchema, matchedData } from "express-valid
 import { mockUsers } from "../utils/constants.mjs";
 import { createUserValidationSchema } from "../utils/validationSchemas.mjs";
 import { resolveIndexByUserId } from "../utils/middlewares.mjs";
+import { User } from "../mongoose/schemas/user.mjs";
+import { hashPassword } from "../utils/helpers.mjs";
 
 const router = Router();
 
@@ -49,37 +51,62 @@ router.get("/api/users/:id", resolveIndexByUserId, (request, response) => {
 });
 
 // POST
-router.post(
-    "/api/users",
-    // [
-    //   body("username") // body() is a request body in that validate a specific field like id, username, displayName etc.
-    //     .notEmpty()
-    //     .withMessage("username cannot be emmpty")
-    //     .isLength({ min: 5, max: 32 })
-    //     .withMessage("username must be at least 5 characters with a max of 32 characters")
-    //     .isString()
-    //     .withMessage("username must be a string!"),
-    //   body("displayName")
-    //     .notEmpty()
-    //     .withMessage('displayName cannot be emmpty'),   
-    // ]
-    checkSchema(createUserValidationSchema),  
-    (request, response) => {
-      console.log(request.body);
-      const result = validationResult(request);
-      console.log(result);
+// router.post(
+//     "/api/users",
+//     // [
+//     //   body("username") // body() is a request body in that validate a specific field like id, username, displayName etc.
+//     //     .notEmpty()
+//     //     .withMessage("username cannot be emmpty")
+//     //     .isLength({ min: 5, max: 32 })
+//     //     .withMessage("username must be at least 5 characters with a max of 32 characters")
+//     //     .isString()
+//     //     .withMessage("username must be a string!"),
+//     //   body("displayName")
+//     //     .notEmpty()
+//     //     .withMessage('displayName cannot be emmpty'),   
+//     // ]
+//     checkSchema(createUserValidationSchema),  
+//     (request, response) => {
+//       console.log(request.body);
+//       const result = validationResult(request);
+//       console.log(result);
 
-      if(!result.isEmpty()) {
-        return response.status(400).send({ errors: result.array() });
-      }
+//       if(!result.isEmpty()) {
+//         return response.status(400).send({ errors: result.array() });
+//       }
 
-      const data = matchedData(request);
-      console.log(data);
+//       const data = matchedData(request);
+//       console.log(data);
     
-      const newUser = { id: mockUsers[mockUsers.length - 1].id + 1, ...data };
-      mockUsers.push(newUser);
-      return response.status(201).send(newUser);
+//       const newUser = { id: mockUsers[mockUsers.length - 1].id + 1, ...data };
+//       mockUsers.push(newUser);
+//       return response.status(201).send(newUser);
+//     }
+// );
+
+// adding users document collection in mongoDB database
+router.post(
+  "/api/users", 
+  checkSchema(createUserValidationSchema),
+  async (request, response) => {
+    const result = validationResult(request);
+    if(!result.isEmpty()) return response.status(400).send(result.array());
+ 
+    const data = matchedData(request);
+    console.log(data);
+    data.password = hashPassword(data.password);
+    console.log(data);
+    const newUser = new User(data);
+    // const { body } = request;
+    // const newUser = new User(body);
+    try {
+      const savedUser = await newUser.save();
+      return response.status(201).send(savedUser);
+    } catch (err) {
+      console.log(err);
+      return response.sendStatus(400);
     }
+  }
 );
 
 // PUT
