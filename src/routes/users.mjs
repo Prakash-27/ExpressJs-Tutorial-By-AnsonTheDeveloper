@@ -5,6 +5,7 @@ import { createUserValidationSchema } from "../utils/validationSchemas.mjs";
 import { resolveIndexByUserId } from "../utils/middlewares.mjs";
 import { User } from "../mongoose/schemas/user.mjs";
 import { hashPassword } from "../utils/helpers.mjs";
+import { getUserByIdHandler, createUserHandler } from "../handlers/users.mjs";
 
 const router = Router();
 
@@ -25,6 +26,7 @@ router.get(
           console.log(err);
           throw err;
         }
+        console.log("Inside Session Store Get");
         console.log(sessionData);
       });
       console.log(request.query);
@@ -37,6 +39,7 @@ router.get(
       if(filter && value) return response.send(
          mockUsers.filter((user) => user[filter].includes(value))
       );
+      return response.send(mockUsers);
     }  
 );
 
@@ -49,6 +52,9 @@ router.get("/api/users/:id", resolveIndexByUserId, (request, response) => {
         return response.send(findUser);
     }
 });
+
+// unit testing the /api/users/:id 
+router.get("/api/users/:id", resolveIndexByUserId, getUserByIdHandler);
 
 // POST
 // router.post(
@@ -107,6 +113,13 @@ router.post(
       return response.sendStatus(400);
     }
   }
+);
+
+// unit testing the /api/users
+router.post(
+  "/api/users", 
+  checkSchema(createUserValidationSchema),
+  createUserHandler
 );
 
 // PUT
